@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aiswarya Pro Typing Tutor (Live News Edition)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a; --keyboard-bg: #1e293b; --key-bg: #334155;
+            --text-color: #f8fafc; --glow-color: #38bdf8; --target-glow: #eab308; 
+            --error-color: #ef4444; --finger-glow: #4ade80;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+        /* Top Controls & Live Stats Dashboard */
+        .header-section {
+            display: flex; flex-direction: column; gap: 15px; padding: 15px 25px;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border-bottom: 2px solid #334155;
+        }
+        .top-controls { display: flex; justify-content: space-between; align-items: center; }
+        .lang-selectors { display: flex; gap: 10px; }
+        .selector { background-color: var(--key-bg); color: white; border: 2px solid #475569; padding: 6px 12px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .btn-mode { background-color: var(--key-bg); color: white; border: 2px solid transparent; padding: 6px 15px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: 0.3s; }
+        .btn-mode.active { background-color: #0284c7; border-color: var(--glow-color); box-shadow: 0 0 10px var(--glow-color); }
+
+        .stats-dashboard {
+            display: flex; justify-content: center; gap: 40px; font-size: 18px; font-weight: bold;
+            background-color: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #475569;
+        }
+        .stat-box span { color: var(--glow-color); font-size: 22px; }
+        .stat-box.error span { color: var(--error-color); }
+        .stat-box.acc span { color: #4ade80; }
+
+        /* Text Board */
+        .text-board-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; padding: 15px; }
+        .text-board {
+            background-color: #1e293b; width: 90%; max-width: 1000px; padding: 25px 35px;
+            border-radius: 12px; font-size: 32px; letter-spacing: 2px; line-height: 1.6;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5); border: 1px solid #475569; user-select: none;
+        }
+        
+        .text-typed { color: #4ade80; opacity: 0.8; } 
+        .text-current { 
+            background-color: var(--glow-color); color: #000; font-weight: bold; 
+            border-radius: 4px; padding: 0 2px; box-shadow: 0 0 10px var(--glow-color);
+            animation: cursor-blink 1s infinite alternate;
+        }
+        .text-current.space { min-width: 15px; display: inline-block; } 
+        .text-remaining { color: #94a3b8; }
+        @keyframes cursor-blink { 0% { opacity: 0.8; } 100% { opacity: 1; } }
+
+        /* Keyboard Layout */
+        .keyboard-section { height: 40vh; background-color: var(--keyboard-bg); display: flex; justify-content: center; align-items: center; padding: 5px; border-top: 3px solid #334155; }
+        .keyboard { display: flex; flex-direction: column; gap: 4px; width: 100%; max-width: 1050px; background-color: #0f172a; padding: 10px; border-radius: 10px; }
+        .row { display: flex; justify-content: center; gap: 4px; width: 100%; }
+        
+        .key { background-color: var(--key-bg); border: 1px solid #475569; border-radius: 5px; color: var(--text-color); height: 42px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2px 4px; cursor: pointer; user-select: none; position: relative; transition: all 0.1s; }
+        
+        .key-top-left { position: absolute; top: 2px; left: 4px; font-size: 11px; font-weight: bold; color: #94a3b8; }
+        .key-top-right { position: absolute; top: 2px; right: 4px; font-size: 13px; font-weight: bold; color: #eab308; }
+        .key-bottom-right { position: absolute; bottom: 2px; right: 4px; font-size: 15px; font-weight: bold; color: #38bdf8; }
+        
+        .key.target-guide { background-color: #854d0e !important; border: 2px solid var(--target-glow); box-shadow: 0 0 12px var(--target-glow); animation: target-pulse 0.8s infinite alternate; }
+        .key.active { background-color: var(--glow-color) !important; box-shadow: 0 0 15px var(--glow-color) !important; transform: scale(0.95); }
+        .key.wrong-active { background-color: var(--error-color) !important; box-shadow: 0 0 15px var(--error-color) !important; }
+        .key.active .key-top-left, .key.active .key-top-right, .key.active .key-bottom-right { color: #000 !important; }
+        .caps.active-caps { background-color: #059669 !important; border-color: #34d399; box-shadow: 0 0 15px #059669; }
+
+        .key.backspace { flex: 1.8; } .key.tab { flex: 1.5; } .key.caps { flex: 1.8; } 
+        .key.enter { flex: 2.2; } .key.shift { flex: 2.5; } .key.space { flex: 8; }
+        .key.backspace, .key.tab, .key.caps, .key.enter, .key.shift, .key.space { align-items: center; justify-content: center; }
+
+        /* Left & Right Hand Positioning */
+        .hands-section-wrapper { background-color: #0f172a; border-top: 2px solid #1e293b; height: 18vh; display: flex; justify-content: center; width: 100%; }
+        .hands-container-layout { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1050px; padding: 5px 40px; }
+        .hand-container { display: flex; gap: 12px; align-items: flex-end; }
+        .finger-node { background-color: #334155; border: 2px solid #475569; border-radius: 20px 20px 5px 5px; width: 32px; color: white; font-size: 11px; font-weight: bold; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 8px; transition: all 0.2s; }
+        #L5, #R5 { height: 60px; } #L4, #R4 { height: 80px; } #L3, #R3 { height: 90px; } #L2, #R2 { height: 82px; } #L1, #R1 { height: 45px; border-radius: 15px; width: 36px; } 
+        .finger-node.finger-blink { background-color: var(--finger-glow) !important; border-color: #4ade80 !important; box-shadow: 0 0 20px var(--finger-glow); transform: translateY(-8px); color: black !important; }
+
+        /* Aiswarya Watermark */
+        .watermark { position: absolute; bottom: 15px; right: 30px; font-size: 30px; font-weight: bold; color: rgba(56, 189, 248, 0.25); font-family: 'Segoe UI', Tahoma, sans-serif; letter-spacing: 3px; pointer-events: none; z-index: 1000; }
+        @keyframes target-pulse { 0% { opacity: 0.7; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="header-section">
+        <div class="top-controls">
+            <div class="lang-selectors">
+                <button class="btn-mode active" id="btn-en" onclick="setLanguage('EN')">ENGLISH</button>
+                <button class="btn-mode" id="btn-ml" onclick="setLanguage('ML')">മലയാളം (Google InScript)</button>
+            </div>
+            <select class="selector" id="lessonSelect" onchange="loadLesson()">
+                <option value="1">Lesson 1: Normal Keys</option>
+                <option value="2">Lesson 2: Shift/Caps Keys</option>
+                <option value="3">Lesson 3: Mixed Practice</option>
+                <option value="4">Lesson 4: Capital Letters & Chillus</option>
+                <option value="5">Lesson 5: Speed Test</option>
+                <option value="online">Class 6: Live Online News/Articles 🌐</option>
+            </select>
+            <button class="btn-mode" style="background-color: #ef4444;" onclick="resetApp()">Restart Lesson</button>
+        </div>
+        
+        <div class="stats-dashboard">
+            <div class="stat-box">Speed: <span id="wpm">0</span> WPM</div>
+            <div class="stat-box acc">Accuracy: <span id="acc">100</span>%</div>
+            <div class="stat-box error">Errors: <span id="errors">0</span></div>
+            <div class="stat-box">Time: <span id="time">0:00</span></div>
+        </div>
+    </div>
+
+    <div class="text-board-container">
+        <div class="text-board" id="textBoard"></div>
+    </div>
+
+    <div class="keyboard-section">
+        <div class="keyboard" id="keyboardContainer"></div>
+    </div>
+
+    <div class="hands-section-wrapper">
+        <div class="hands-container-layout">
+            <div class="hand-container">
+                <div class="finger-node" id="L5"><span>P</span></div>
+                <div class="finger-node" id="L4"><span>R</span></div>
+                <div class="finger-node" id="L3"><span>M</span></div>
+                <div class="finger-node" id="L2"><span>I</span></div>
+                <div class="finger-node" id="L1"><span>T</span></div>
+            </div>
+            <div class="hand-container">
+                <div class="finger-node" id="R1"><span>T</span></div>
+                <div class="finger-node" id="R2"><span>I</span></div>
+                <div class="finger-node" id="R3"><span>M</span></div>
+                <div class="finger-node" id="R4"><span>R</span></div>
+                <div class="finger-node" id="R5"><span>P</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="watermark">Aiswarya</div>
+
+    <script>
+        let currentLang = 'EN'; let typedText = ''; let currentTargetText = ''; 
+        let isShiftPressed = false; let isCapsLockOn = false;
+        
+        let startTime = null; let timerInterval = null; 
+        let errorCount = 0; let totalKeystrokes = 0; let isLessonFinished = false;
+
+        const lessons = {
+            EN: { 
+                1: ["a s d f j k l ;", "q w e r t y u i o p"], 
+                2: ["A S D F J K L :", "Q W E R T Y U I O P"], 
+                3: ["Pack my box with five dozen zinc matrix"], 
+                4: ["Kerala India Malappuram Wandoor Nilambur"], 
+                5: ["Typing study style brings a professional dashboard to track your speed."]
+            },
+            ML: { 
+                1: ["ോ േ ് ി ു പ ര ക ത ച ട", "െ ം മ ന വ ല സ , . യ"], 
+                2: ["ഓ ഏ അ ഇ ഉ ഫ റ ഖ ഥ ഛ ഠ", "എ ൺ ണ ൻ ഴ ള ശ ഷ ൽ ൾ"], 
+                3: ["കേരളം കമ്പ്യൂട്ടർ പരിശീലനം"], 
+                4: ["അവർ മയിൽ അവൾ അവൻ കൺമണി"], 
+                5: ["ർ ൽ ൾ ൻ ൺ ജ്ഞ ത്ര ക്ഷ ശ്ര"]
+            }
+        };
+
+        const pcKeyboardRows = [
+            [
+                {code: 'Backquote', normal: {eng: '`', mal: 'ൊ', finger: 'L5'}, shifted: {eng: '~', mal: 'ഒ', finger: 'L5'}},
+                {code: 'Digit1', normal: {eng: '1', mal: '1', finger: 'L5'}, shifted: {eng: '!', mal: '', finger: 'L5'}},
+                {code: 'Digit2', normal: {eng: '2', mal: '2', finger: 'L4'}, shifted: {eng: '@', mal: '', finger: 'L4'}},
+                {code: 'Digit3', normal: {eng: '3', mal: '3', finger: 'L3'}, shifted: {eng: '#', mal: '്ര', finger: 'L3'}},
+                {code: 'Digit4', normal: {eng: '4', mal: '4', finger: 'L2'}, shifted: {eng: '$', mal: 'ർ', finger: 'L2'}},
+                {code: 'Digit5', normal: {eng: '5', mal: '5', finger: 'L2'}, shifted: {eng: '%', mal: 'ജ്ഞ', finger: 'L2'}},
+                {code: 'Digit6', normal: {eng: '6', mal: '6', finger: 'R2'}, shifted: {eng: '^', mal: 'ത്ര', finger: 'R2'}},
+                {code: 'Digit7', normal: {eng: '7', mal: '7', finger: 'R2'}, shifted: {eng: '&', mal: 'ക്ഷ', finger: 'R2'}},
+                {code: 'Digit8', normal: {eng: '8', mal: '8', finger: 'R3'}, shifted: {eng: '*', mal: 'ശ്ര', finger: 'R3'}},
+                {code: 'Digit9', normal: {eng: '9', mal: '9', finger: 'R4'}, shifted: {eng: '(', mal: '(', finger: 'R4'}},
+                {code: 'Digit0', normal: {eng: '0', mal: '0', finger: 'R5'}, shifted: {eng: ')', mal: ')', finger: 'R5'}},
+                {code: 'Minus', normal: {eng: '-', mal: '-', finger: 'R5'}, shifted: {eng: '_', mal: 'ഃ', finger: 'R5'}},
+                {code: 'Equal', normal: {eng: '=', mal: 'ൃ', finger: 'R5'}, shifted: {eng: '+', mal: 'ഋ', finger: 'R5'}},
+                {code: 'Backspace', normal: {eng: 'Bksp', mal: '←', class: 'backspace', finger: 'R5'}, shifted: {eng: 'Bksp', mal: '←', class: 'backspace', finger: 'R5'}}
+            ],
+            [
+                {code: 'Tab', normal: {eng: 'Tab', mal: 'Tab', class: 'tab', finger: 'L5'}, shifted: {eng: 'Tab', mal: 'Tab', class: 'tab', finger: 'L5'}},
+                {code: 'KeyQ', normal: {eng: 'q', mal: 'ൌ', finger: 'L5'}, shifted: {eng: 'Q', mal: 'ഔ', finger: 'L5'}},
+                {code: 'KeyW', normal: {eng: 'w', mal: 'ൈ', finger: 'L4'}, shifted: {eng: 'W', mal: 'ഐ', finger: 'L4'}},
+                {code: 'KeyE', normal: {eng: 'e', mal: 'ാ', finger: 'L3'}, shifted: {eng: 'E', mal: 'ആ', finger: 'L3'}},
+                {code: 'KeyR', normal: {eng: 'r', mal: 'ീ', finger: 'L2'}, shifted: {eng: 'R', mal: 'ഈ', finger: 'L2'}},
+                {code: 'KeyT', normal: {eng: 't', mal: 'ൂ', finger: 'L2'}, shifted: {eng: 'T', mal: 'ഊ', finger: 'L2'}},
+                {code: 'KeyY', normal: {eng: 'y', mal: 'ബ', finger: 'R2'}, shifted: {eng: 'Y', mal: 'ഭ', finger: 'R2'}},
+                {code: 'KeyU', normal: {eng: 'u', mal: 'ഹ', finger: 'R2'}, shifted: {eng: 'U', mal: 'ങ', finger: 'R2'}},
+                {code: 'KeyI', normal: {eng: 'i', mal: 'ഗ', finger: 'R3'}, shifted: {eng: 'I', mal: 'ഘ', finger: 'R3'}},
+                {code: 'KeyO', normal: {eng: 'o', mal: 'ദ', finger: 'R4'}, shifted: {eng: 'O', mal: 'ധ', finger: 'R4'}},
+                {code: 'KeyP', normal: {eng: 'p', mal: 'ജ', finger: 'R5'}, shifted: {eng: 'P', mal: 'ഝ', finger: 'R5'}},
+                {code: 'BracketLeft', normal: {eng: '[', mal: 'ഡ', finger: 'R5'}, shifted: {eng: '{', mal: 'ഢ', finger: 'R5'}},
+                {code: 'BracketRight', normal: {eng: ']', mal: '', finger: 'R5'}, shifted: {eng: '}', mal: 'ഞ', finger: 'R5'}},
+                {code: 'Backslash', normal: {eng: '\\', mal: 'ർ', finger: 'R5'}, shifted: {eng: '|', mal: '', finger: 'R5'}}
+            ],
+            [
+                {code: 'CapsLock', normal: {eng: 'Caps', mal: 'Caps', class: 'caps', finger: 'L5'}, shifted: {eng: 'Caps', mal: 'Caps', class: 'caps', finger: 'L5'}},
+                {code: 'KeyA', normal: {eng: 'a', mal: 'ോ', finger: 'L5'}, shifted: {eng: 'A', mal: 'ഓ', finger: 'L5'}},
+                {code: 'KeyS', normal: {eng: 's', mal: 'േ', finger: 'L4'}, shifted: {eng: 'S', mal: 'ഏ', finger: 'L4'}},
+                {code: 'KeyD', normal: {eng: 'd', mal: '്', finger: 'L3'}, shifted: {eng: 'D', mal: 'അ', finger: 'L3'}},
+                {code: 'KeyF', normal: {eng: 'f', mal: 'ി', finger: 'L2'}, shifted: {eng: 'F', mal: 'ഇ', finger: 'L2'}},
+                {code: 'KeyG', normal: {eng: 'g', mal: 'ു', finger: 'L2'}, shifted: {eng: 'G', mal: 'ഉ', finger: 'L2'}},
+                {code: 'KeyH', normal: {eng: 'h', mal: 'പ', finger: 'R2'}, shifted: {eng: 'H', mal: 'ഫ', finger: 'R2'}},
+                {code: 'KeyJ', normal: {eng: 'j', mal: 'ര', finger: 'R2'}, shifted: {eng: 'J', mal: 'റ', finger: 'R2'}},
+                {code: 'KeyK', normal: {eng: 'k', mal: 'ക', finger: 'R3'}, shifted: {eng: 'K', mal: 'ഖ', finger: 'R3'}},
+                {code: 'KeyL', normal: {eng: 'l', mal: 'ത', finger: 'R4'}, shifted: {eng: 'L', mal: 'ഥ', finger: 'R4'}},
+                {code: 'Semicolon', normal: {eng: ';', mal: 'ച', finger: 'R5'}, shifted: {eng: ':', mal: 'ഛ', finger: 'R5'}},
+                {code: 'Quote', normal: {eng: "'", mal: 'ട', finger: 'R5'}, shifted: {eng: '"', mal: 'ഠ', finger: 'R5'}},
+                {code: 'Enter', normal: {eng: 'Enter', mal: '↵', class: 'enter', finger: 'R5'}, shifted: {eng: 'Enter', mal: '↵', class: 'enter', finger: 'R5'}}
+            ],
+            [
+                {code: 'ShiftLeft', normal: {eng: 'Shift', mal: 'Shift', class: 'shift', finger: 'L5'}, shifted: {eng: 'Shift', mal: 'Shift', class: 'shift', finger: 'L5'}},
+                {code: 'KeyZ', normal: {eng: 'z', mal: 'െ', finger: 'L5'}, shifted: {eng: 'Z', mal: 'എ', finger: 'L5'}},
+                {code: 'KeyX', normal: {eng: 'x', mal: 'ം', finger: 'L4'}, shifted: {eng: 'X', mal: 'ൺ', finger: 'L4'}},
+                {code: 'KeyC', normal: {eng: 'c', mal: 'മ', finger: 'L3'}, shifted: {eng: 'C', mal: 'ണ', finger: 'L3'}},
+                {code: 'KeyV', normal: {eng: 'v', mal: 'ന', finger: 'L2'}, shifted: {eng: 'V', mal: 'ൻ', finger: 'L2'}},
+                {code: 'KeyB', normal: {eng: 'b', mal: 'വ', finger: 'L2'}, shifted: {eng: 'B', mal: 'ഴ', finger: 'L2'}},
+                {code: 'KeyN', normal: {eng: 'n', mal: 'ല', finger: 'R2'}, shifted: {eng: 'N', mal: 'ള', finger: 'R2'}},
+                {code: 'KeyM', normal: {eng: 'm', mal: 'സ', finger: 'R2'}, shifted: {eng: 'M', mal: 'ശ', finger: 'R2'}},
+                {code: 'Comma', normal: {eng: ',', mal: ',', finger: 'R3'}, shifted: {eng: '<', mal: 'ഷ', finger: 'R3'}},
+                {code: 'Period', normal: {eng: '.', mal: '.', finger: 'R4'}, shifted: {eng: '>', mal: 'ൽ', finger: 'R4'}},
+                {code: 'Slash', normal: {eng: '/', mal: 'യ', finger: 'R5'}, shifted: {eng: '?', mal: 'ൿ', finger: 'R5'}},
+                {code: 'ShiftRight', normal: {eng: 'Shift', mal: 'Shift', class: 'shift', finger: 'R5'}, shifted: {eng: 'Shift', mal: 'Shift', class: 'shift', finger: 'R5'}}
+            ],
+            [ {code: 'Space', normal: {eng: 'Space', mal: ' ', class: 'space', finger: 'R1'}, shifted: {eng: 'Space', mal: ' ', class: 'space', finger: 'R1'}} ]
+        ];
+
+        function renderKeyboard() {
+            const container = document.getElementById('keyboardContainer'); container.innerHTML = '';
+            pcKeyboardRows.forEach(row => {
+                const rowDiv = document.createElement('div'); rowDiv.className = 'row';
+                row.forEach(key => {
+                    const btn = document.createElement('button'); 
+                    
+                    btn.className = `key ${key.normal.class || ''}`; btn.id = key.code;
+                    if(key.code === 'CapsLock' && isCapsLockOn) btn.classList.add('active-caps');
+                    
+                    if(key.normal.class) {
+                        btn.innerHTML = `<span style="align-self:center; font-weight:bold; font-size:14px;">${key.normal.eng}</span>`;
+                    } else {
+                        let malShift = key.shifted.mal;
+                        let engTop = key.shifted.eng.toUpperCase();
+                        btn.innerHTML = `
+                            <span class="key-top-left">${engTop}</span>
+                            <span class="key-top-right">${malShift}</span>
+                            <span class="key-bottom-right">${key.normal.mal}</span>
+                        `;
+                    }
+                    btn.onclick = () => triggerKey(key.code);
+                    rowDiv.appendChild(btn);
+                });
+                container.appendChild(rowDiv);
+            });
+            updateUI();
+        }
+
+        function startTimer() {
+            if (!startTime) {
+                startTime = new Date(); timerInterval = setInterval(updateStats, 1000);
+            }
+        }
+
+        function updateStats() {
+            if (!startTime || isLessonFinished) return;
+            const now = new Date(); const timeDiff = Math.floor((now - startTime) / 1000);
+            const minutes = Math.floor(timeDiff / 60); const seconds = timeDiff % 60;
+            document.getElementById('time').innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+            if (timeDiff > 0 && typedText.length > 0) {
+                let wpm = Math.round(((typedText.length / 5) / timeDiff) * 60);
+                document.getElementById('wpm').innerText = wpm;
+            }
+            let acc = totalKeystrokes > 0 ? Math.round(((totalKeystrokes - errorCount) / totalKeystrokes) * 100) : 100;
+            document.getElementById('acc').innerText = acc;
+        }
+
+        // --- NEW FEATURE: Fetch Live News/Articles API ---
+        async function fetchOnlineText() {
+            const board = document.getElementById('textBoard');
+            board.innerHTML = `<span style='color:#38bdf8; font-size:24px;'>🌐 Fetching latest online content...</span>`;
+            
+            // Wikipedia API for random extracts (English or Malayalam)
+            const apiUrl = currentLang === 'EN' 
+                ? 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=random&grnnamespace=0&prop=extracts&exchars=200&exintro=1&explaintext=1'
+                : 'https://ml.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=random&grnnamespace=0&prop=extracts&exchars=200&exintro=1&explaintext=1';
+
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                const pages = data.query.pages;
+                const pageId = Object.keys(pages)[0];
+                let rawText = pages[pageId].extract;
+
+                // Sanitize text to strictly match characters mapped in our keyboard layout
+                currentTargetText = sanitizeForKeyboard(rawText, currentLang);
+                resetStats(); updateUI();
+            } catch (error) {
+                currentTargetText = currentLang === 'EN' ? "Error loading online news. Please try again." : "ഓൺലൈൻ വിവരങ്ങൾ ലഭ്യമായില്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക.";
+                resetStats(); updateUI();
+            }
+        }
+
+        function sanitizeForKeyboard(text, lang) {
+            // Build a set of all valid characters currently mapped in our keyboard
+            let validChars = new Set([' ']);
+            pcKeyboardRows.forEach(row => row.forEach(k => {
+                if(lang === 'EN') {
+                    if(k.normal.eng) validChars.add(k.normal.eng);
+                    if(k.shifted.eng) validChars.add(k.shifted.eng);
+                } else {
+                    if(k.normal.mal) validChars.add(k.normal.mal);
+                    if(k.shifted.mal) validChars.add(k.shifted.mal);
+                }
+            }));
+
+            let clean = "";
+            for(let char of text) {
+                // If it's a valid character, add it. (Case-sensitive check)
+                if(validChars.has(char) || validChars.has(char.toLowerCase())) {
+                    clean += char;
+                }
+            }
+            // Remove weird double spaces resulting from sanitization
+            return clean.replace(/\s+/g, ' ').trim() || (lang === 'EN' ? "Online article skipped." : "വാർത്തകൾ ലഭ്യമല്ല.");
+        }
+
+        function loadLesson() {
+            const lessonVal = document.getElementById('lessonSelect').value;
+            if (lessonVal === 'online') {
+                fetchOnlineText();
+            } else {
+                const list = lessons[currentLang][lessonVal];
+                currentTargetText = list[Math.floor(Math.random() * list.length)]; 
+                resetStats(); updateUI();
+            }
+        }
+
+        function resetStats() {
+            typedText = ''; errorCount = 0; totalKeystrokes = 0; startTime = null; isLessonFinished = false;
+            clearInterval(timerInterval);
+            document.getElementById('wpm').innerText = '0';
+            document.getElementById('acc').innerText = '100';
+            document.getElementById('errors').innerText = '0';
+            document.getElementById('time').innerText = '0:00';
+        }
+        function resetApp() { resetStats(); loadLesson(); }
+
+        function updateUI() {
+            const board = document.getElementById('textBoard'); 
+            let progress = typedText.length;
+            
+            if (progress >= currentTargetText.length && currentTargetText.length > 0) {
+                isLessonFinished = true; clearInterval(timerInterval);
+                board.innerHTML = `<span style='color:#4ade80;'>Lesson Completed! WPM: ${document.getElementById('wpm').innerText} | Accuracy: ${document.getElementById('acc').innerText}%</span><br><br><span style='font-size:20px; color:#94a3b8;'>Loading next...</span>`;
+                setTimeout(loadLesson, 2500); return;
+            }
+
+            let typedPart = currentTargetText.substring(0, progress); 
+            let nextChar = currentTargetText.charAt(progress); 
+            let remaining = currentTargetText.substring(progress + 1);
+            
+            let nextCharClass = nextChar === ' ' ? 'text-current space' : 'text-current';
+            let nextCharDisplay = nextChar === ' ' ? '&nbsp;' : nextChar;
+
+            board.innerHTML = `<span class="text-typed">${typedPart}</span><span class="${nextCharClass}">${nextCharDisplay}</span><span class="text-remaining">${remaining}</span>`;
+
+            // Reset guidance
+            document.querySelectorAll('.key').forEach(k => k.classList.remove('target-guide'));
+            document.querySelectorAll('.finger-node').forEach(f => f.classList.remove('finger-blink'));
+
+            let targetCode = '', fingerId = '', requiresShift = false;
+            if (nextChar === ' ') { 
+                targetCode = 'Space'; fingerId = 'R1'; 
+            } else {
+                pcKeyboardRows.forEach(row => row.forEach(k => {
+                    if (currentLang === 'EN') {
+                        if (k.normal.eng === nextChar) { targetCode = k.code; fingerId = k.normal.finger; requiresShift = isCapsLockOn; } 
+                        else if (k.shifted.eng === nextChar) { targetCode = k.code; fingerId = k.shifted.finger; requiresShift = !isCapsLockOn; }
+                    } else {
+                        // NORMAL = Bottom Malayalam Letter, SHIFTED = Top Malayalam Letter
+                        if (k.normal.mal === nextChar && k.normal.mal !== "") { targetCode = k.code; fingerId = k.normal.finger; requiresShift = isCapsLockOn; } 
+                        else if (k.shifted.mal === nextChar && k.shifted.mal !== "") { targetCode = k.code; fingerId = k.shifted.finger; requiresShift = !isCapsLockOn; }
+                    }
+                }));
+            }
+
+            if (targetCode) document.getElementById(targetCode)?.classList.add('target-guide');
+            if (fingerId) document.getElementById(fingerId)?.classList.add('finger-blink');
+            if (requiresShift) {
+                if (fingerId.startsWith('L')) { document.getElementById('ShiftRight')?.classList.add('target-guide'); document.getElementById('R5')?.classList.add('finger-blink'); } 
+                else { document.getElementById('ShiftLeft')?.classList.add('target-guide'); document.getElementById('L5')?.classList.add('finger-blink'); }
+            }
+        }
+
+        function triggerKey(code) {
+            if (isLessonFinished || code === 'Backspace') return;
+            if (typedText.length >= currentTargetText.length) return;
+
+            startTimer(); totalKeystrokes++;
+
+            let expected = currentTargetText.charAt(typedText.length);
+            let activeKey = null; pcKeyboardRows.forEach(row => row.forEach(k => { if(k.code === code) activeKey = k; }));
+            if (!activeKey && code !== 'Space') return;
+
+            let inputChar = '';
+            if (code === 'Space') {
+                inputChar = ' ';
+            } else {
+                let isShiftedState = isShiftPressed !== isCapsLockOn;
+                if (currentLang === 'EN') {
+                    inputChar = isShiftedState ? activeKey.shifted.eng : activeKey.normal.eng;
+                } else {
+                    inputChar = isShiftedState ? activeKey.shifted.mal : activeKey.normal.mal;
+                }
+            }
+
+            const keyEl = document.getElementById(code);
+            if (inputChar && (inputChar === expected || (code === 'Space' && expected === ' '))) {
+                typedText += expected; updateUI(); 
+                keyEl?.classList.add('active'); setTimeout(() => keyEl?.classList.remove('active'), 100);
+            } else { 
+                errorCount++; document.getElementById('errors').innerText = errorCount; updateStats(); 
+                keyEl?.classList.add('wrong-active'); setTimeout(() => keyEl?.classList.remove('wrong-active'), 150); 
+            }
+        }
+
+        window.addEventListener('keydown', (e) => { 
+            if(e.code === 'Space') e.preventDefault(); 
+            if(e.key === 'CapsLock') { isCapsLockOn = e.getModifierState('CapsLock'); renderKeyboard(); return; }
+            if(e.key === 'Shift') { isShiftPressed = true; renderKeyboard(); return; } 
+            triggerKey(e.code); 
+        });
+
+        window.addEventListener('keyup', (e) => { 
+            if(e.key === 'Shift') { isShiftPressed = false; renderKeyboard(); }
+            if(e.key === 'CapsLock') { isCapsLockOn = e.getModifierState('CapsLock'); renderKeyboard(); }
+        });
+
+        function setLanguage(lang) { 
+            currentLang = lang; 
+            document.getElementById('btn-en').classList.toggle('active', lang === 'EN'); 
+            document.getElementById('btn-ml').classList.toggle('active', lang === 'ML'); 
+            
+            // Re-fetch online news in the new language if currently selected
+            if(document.getElementById('lessonSelect').value === 'online') {
+                fetchOnlineText();
+            } else {
+                loadLesson(); 
+            }
+            renderKeyboard(); 
+        }
+        
+        setTimeout(() => { loadLesson(); renderKeyboard(); }, 200);
+    </script>
+</body>
+</html>
